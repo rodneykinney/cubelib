@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
+use rand::Rng;
 
 use crate::cube::{CornerCube333, EdgeCube333, Transformation333, Turn333};
 use crate::cube::cube::CornerPosition::*;
@@ -30,6 +31,14 @@ impl Into<CornerCube333> for &Cube333 {
 impl Cube333 {
     pub fn new(edges: EdgeCube333, corners: CornerCube333) -> Cube333 {
         Cube333 { edges, corners }
+    }
+    pub fn random() -> Cube333 {
+        let mut rng = &mut rand::thread_rng();
+        let parity = rng.gen_bool(0.5);
+        Cube333 {
+            edges: EdgeCube333::random(parity, &mut rng),
+            corners: CornerCube333::random(parity, &mut rng),
+        }
     }
 }
 
