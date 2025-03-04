@@ -2,6 +2,8 @@ use std::vec;
 use log::debug;
 use crate::cube::Cube333;
 
+use crate::algs::Algorithm;
+
 use crate::solver::solution::Solution;
 
 use crate::steps;
@@ -26,6 +28,31 @@ pub fn solve_steps<'a>(puzzle: Cube333, steps: &'a Vec<(Step<'a>, DefaultStepOpt
                 .map(|(sol, _)|sol);
             Box::new(next)
         });
+
+    solutions
+}
+
+
+pub fn solve_steps_vec<'a>(puzzle: Cube333, steps: &'a Vec<(Step<'a>, DefaultStepOptions)>, cancel_token: &'a CancelToken) -> Vec<Solution> {
+    let mut solutions = vec![Solution::new()];
+
+    for (step, search_opts) in steps {
+        debug!("Step {} with options {:?}", step.kind(), search_opts);
+        let mut next_step_solutions: Vec<Solution> = vec![];
+        for i in 0..solutions.len() {
+            debug!("Step {} on {}", step.kind(), Into::<Algorithm>::into(solutions[i].clone()));
+            next_step_solutions.extend(
+                steps::step::next_step(
+                    solutions[i..i+1].iter().map(|s| s.clone()),
+                    step,
+                    search_opts.clone(),
+                    puzzle.clone(),
+                    cancel_token
+                )
+            );
+        }
+        solutions = next_step_solutions;
+    }
 
     solutions
 }

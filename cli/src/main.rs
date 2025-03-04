@@ -12,7 +12,7 @@ use cubelib::solver::df_search::CancelToken;
 use cubelib::solver::solution::Solution;
 use cubelib::steps::{eo, solver};
 use cubelib::steps::tables::PruningTables333;
-use log::{error, info};
+use log::{debug, error, info};
 use simple_logger::SimpleLogger;
 use cubelib::cube::turn::ApplyAlgorithm;
 
@@ -103,34 +103,38 @@ fn find_and_print_solutions(cube: Cube333, cmd: SolveCommand) {
     };
 
     let cancel_token = CancelToken::default();
-    let solutions = cubelib::solver::solve_steps(cube, &steps, &cancel_token);
-
-    info!("Generating solutions\n");
     let time = Instant::now();
 
-    let mut solutions: Box<dyn Iterator<Item=Solution>> = Box::new(solutions
-        .skip_while(|alg| alg.len() < cmd.min)
-        .take_while(|alg| cmd.max.map_or(true, |max| alg.len() <= max)));
+    // let solutions = cubelib::solver::solve_steps(cube, &steps, &cancel_token);
+    //
+    // info!("Generating solutions\n");
+    //
+    // let mut solutions: Box<dyn Iterator<Item=Solution>> = Box::new(solutions
+    //     .skip_while(|alg| alg.len() < cmd.min)
+    //     .take_while(|alg| cmd.max.map_or(true, |max| alg.len() <= max)));
+    //
+    // // For e.g. FR the direction of the last move always matters, so we can't filter if we're doing FR
+    // let can_filter_last_move = steps.last().map(|(s, _)| s.kind() != StepKind::FR && s.kind() != StepKind::FIN).unwrap_or(true);
+    // if !cmd.all_solutions && can_filter_last_move {
+    //     solutions = Box::new(solutions
+    //         .filter(|alg| eo::eo_config::filter_eo_last_moves_pure(&alg.clone().into())));
+    // }
+    //
+    // //We already generate a mostly duplicate free iterator, but sometimes the same solution is valid for different stages and that can cause duplicates.
+    // let solutions = stream::distinct_algorithms(solutions);
+    //
+    // let mut solutions: Box<dyn Iterator<Item=Solution>> = Box::new(solutions);
+    //
+    // if cmd.max.is_none() || cmd.solution_count.is_some() {
+    //     solutions = Box::new(solutions
+    //         .take(cmd.solution_count.unwrap_or(1)))
+    // }
 
-    // For e.g. FR the direction of the last move always matters, so we can't filter if we're doing FR
-    let can_filter_last_move = steps.last().map(|(s, _)| s.kind() != StepKind::FR && s.kind() != StepKind::FIN).unwrap_or(true);
-    if !cmd.all_solutions && can_filter_last_move {
-        solutions = Box::new(solutions
-            .filter(|alg| eo::eo_config::filter_eo_last_moves_pure(&alg.clone().into())));
-    }
-
-    //We already generate a mostly duplicate free iterator, but sometimes the same solution is valid for different stages and that can cause duplicates.
-    let solutions = stream::distinct_algorithms(solutions);
-
-    let mut solutions: Box<dyn Iterator<Item=Solution>> = Box::new(solutions);
-
-    if cmd.max.is_none() || cmd.solution_count.is_some() {
-        solutions = Box::new(solutions
-            .take(cmd.solution_count.unwrap_or(1)))
-    }
+    let solutions = cubelib::solver::solve_steps_vec(cube, &steps, &cancel_token);
+    debug!("Found {} solutions", solutions.len());
 
     //The iterator is always sorted, so this just prints the shortest solutions
-    for solution in solutions {
+    for solution in solutions.into_iter() {
         match cmd.format {
             SolutionFormat::Plain =>
                 println!("{}", Into::<Algorithm>::into(solution)),
