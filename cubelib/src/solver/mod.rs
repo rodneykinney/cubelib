@@ -38,9 +38,9 @@ pub fn solve_steps_vec<'a>(puzzle: Cube333, steps: &'a Vec<(Step<'a>, DefaultSte
 
     for (step, search_opts) in steps {
         debug!("Step {} with options {:?}", step.kind(), search_opts);
-        let mut next_step_solutions: Vec<Solution> = vec![];
+        let mut next_step_solutions = vec![];
         for i in 0..solutions.len() {
-            debug!("Step {} on {}", step.kind(), Into::<Algorithm>::into(solutions[i].clone()));
+            let n = next_step_solutions.len();
             next_step_solutions.extend(
                 steps::step::next_step(
                     solutions[i..i+1].iter().map(|s| s.clone()),
@@ -50,8 +50,12 @@ pub fn solve_steps_vec<'a>(puzzle: Cube333, steps: &'a Vec<(Step<'a>, DefaultSte
                     cancel_token
                 )
             );
+            debug!("Found {} {} for {}", next_step_solutions.len() - n, step.kind(), Into::<Algorithm>::into(solutions[i].clone()));
         }
-        solutions = next_step_solutions;
+        let limit = std::cmp::min(search_opts.step_limit.unwrap_or(usize::MAX), next_step_solutions.len());
+        debug!("Sampling {}/{} solutions", limit, next_step_solutions.len());
+        next_step_solutions.sort_by(|a, b| a.len().cmp(&b.len()));
+        solutions = next_step_solutions[..limit].to_vec();
     }
 
     solutions
